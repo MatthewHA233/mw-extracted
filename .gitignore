@@ -1,0 +1,17 @@
+extracted_main_audio/
+extracted_guanggao_audio/
+extracted_events/
+extracted_content_ui/
+extracted_ag97/
+extracted/
+MW解包有益资源/*
+!MW解包有益资源/extract_all_events.py
+MW数据站爬虫/*
+!MW数据站爬虫/(旧)数据字段提取器.py
+!MW数据站爬虫/(旧)战舰中英文名爬取.py
+!MW数据站爬虫/1批量字段提取器.py
+!MW数据站爬虫/2批量数据中英文名爬取.py
+!MW数据站爬虫/3活动数据加工.py
+!MW数据站爬虫/4抽奖物品数据爬取.py
+!MW数据站爬虫/抽奖活动.csv
+!MW数据站爬虫/验证更新抽奖物品.py
