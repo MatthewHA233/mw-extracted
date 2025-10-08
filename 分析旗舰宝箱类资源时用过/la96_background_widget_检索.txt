@@ -1,0 +1,35 @@
+======================================================================
+la96 活动的 background 和 widget 检索结果
+======================================================================
+
+[la96 + background] - 8 个文件:
+----------------------------------------------------------------------
+contentseparated_assets_offers/eventgachaoffer_la96_limited_2_big_background.png.bundle
+contentseparated_assets_offers/eventgachaoffer_la96_limited_2_medium_background.png.bundle
+contentseparated_assets_offers/eventgachaoffer_la96_limited_2_small_background.png.bundle
+contentseparated_assets_offers/eventgachaoffer_la96_limited_background.png.bundle
+contentseparated_assets_offers_eventgachaoffer_la96_limited_2_big_background.png.bundle
+contentseparated_assets_offers_eventgachaoffer_la96_limited_2_medium_background.png.bundle
+contentseparated_assets_offers_eventgachaoffer_la96_limited_2_small_background.png.bundle
+contentseparated_assets_offers_eventgachaoffer_la96_limited_background.png.bundle
+
+
+[la96 + widget] - 10 个文件:
+----------------------------------------------------------------------
+contentseparated_assets_activities/lootbox_activity_la96_widget.bundle
+contentseparated_assets_activities_lootbox_activity_la96_widget.bundle
+contentseparated_assets_offers/eventgachaoffer_la96_limited_2_big_widget.png.bundle
+contentseparated_assets_offers/eventgachaoffer_la96_limited_2_medium_widget.png.bundle
+contentseparated_assets_offers/eventgachaoffer_la96_limited_2_small_widget.png.bundle
+contentseparated_assets_offers/eventgachaoffer_la96_limited_widget.png.bundle
+contentseparated_assets_offers_eventgachaoffer_la96_limited_2_big_widget.png.bundle
+contentseparated_assets_offers_eventgachaoffer_la96_limited_2_medium_widget.png.bundle
+contentseparated_assets_offers_eventgachaoffer_la96_limited_2_small_widget.png.bundle
+contentseparated_assets_offers_eventgachaoffer_la96_limited_widget.png.bundle
+
+
+======================================================================
+统计:
+======================================================================
+background: 8 个
+widget: 10 个
