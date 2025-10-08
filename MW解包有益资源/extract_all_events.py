@@ -11,7 +11,7 @@ BASE_PATH = r"Modern Warships_Data\StreamingAssets\aa\w64"
 SEARCH_CONFIG = {
     # 活动资源
     "contentseparated_assets_offers": ["activity_gacha_", "eventgachaoffer_"],
-    "contentseparated_assets_activities": ["activity_gacha_", "eventgachaoffer_"],
+    "contentseparated_assets_activities": ["activity_gacha_", "eventgachaoffer_", "lootbox_activity_"],
     "contentseparated_assets_camouflages": ["activity_gacha_", "eventgachaoffer_"],
     "contentseparated_assets_flags": ["activity_gacha_", "eventgachaoffer_"],
     # UI资源 - sprites目录
@@ -23,6 +23,10 @@ SEARCH_CONFIG = {
     # 迷彩资源
     "contentseparated_assets_content/textures/sprites/camouflages": [
         "camouflages.spriteatlas.bundle"
+    ],
+    # 宝箱券资源
+    "contentseparated_assets_assets/content/textures/sprites": [
+        "lootboxtickets.spriteatlas.bundle"
     ]
 }
 
@@ -62,7 +66,7 @@ def extract_bundle_task(args):
         return (bundle_name, 0, str(e))
 
 def extract_activity_gacha_from_spriteatlas(spriteatlas_path, output_dir):
-    """从activities.spriteatlas中提取activity_gacha资源"""
+    """从activities.spriteatlas中提取所有活动相关资源"""
     try:
         env = UnityPy.load(str(spriteatlas_path))
         extracted_count = 0
@@ -73,8 +77,8 @@ def extract_activity_gacha_from_spriteatlas(spriteatlas_path, output_dir):
                     data = obj.read()
                     name = getattr(data, 'name', None) or getattr(data, 'm_Name', None)
 
-                    # 只提取activity_gacha开头的资源
-                    if name and name.startswith('activity_gacha_'):
+                    # 提取所有活动相关的资源（activity开头或lootbox_activity开头）
+                    if name and (name.lower().startswith('activity') or name.startswith('lootbox_activity')):
                         if hasattr(data, 'image'):
                             img = data.image
                             img_path = os.path.join(output_dir, f"{name}.png")
@@ -131,7 +135,13 @@ def main():
         else:
             # 活动资源，按前缀查找
             for pattern in patterns:
-                bundles.extend(folder_path.glob(f"{pattern}*.bundle"))
+                found_bundles = list(folder_path.glob(f"{pattern}*.bundle"))
+
+                # 对于lootbox_activity，只保留widget和background
+                if pattern == "lootbox_activity_":
+                    found_bundles = [b for b in found_bundles if 'widget' in b.name or 'background' in b.name]
+
+                bundles.extend(found_bundles)
 
         if not bundles:
             continue
@@ -181,9 +191,9 @@ def main():
             else:
                 print(f"[{completed}/{total_files}] ✗ {bundle_name} (无内容)")
 
-    # 特别处理：从activities.spriteatlas中提取activity_gacha资源
+    # 特别处理：从activities.spriteatlas中提取所有活动资源
     print(f"\n{'=' * 70}")
-    print("特别提取: activities.spriteatlas 中的 activity_gacha 资源")
+    print("特别提取: activities.spriteatlas 中的所有活动资源")
     print("=" * 70)
 
     spriteatlas_path = base_path / ACTIVITIES_SPRITEATLAS_PATH
@@ -192,12 +202,12 @@ def main():
         os.makedirs(activities_output_dir, exist_ok=True)
 
         print(f"正在扫描: {spriteatlas_path.name}")
-        gacha_count = extract_activity_gacha_from_spriteatlas(spriteatlas_path, str(activities_output_dir))
+        activity_count = extract_activity_gacha_from_spriteatlas(spriteatlas_path, str(activities_output_dir))
 
-        if gacha_count > 0:
-            print(f"✓ 从 spriteatlas 提取了 {gacha_count} 个 activity_gacha 资源")
+        if activity_count > 0:
+            print(f"✓ 从 spriteatlas 提取了 {activity_count} 个活动资源")
         else:
-            print("✗ spriteatlas 中未找到 activity_gacha 资源")
+            print("✗ spriteatlas 中未找到活动资源")
     else:
         print(f"✗ 未找到: {ACTIVITIES_SPRITEATLAS_PATH}")
 
