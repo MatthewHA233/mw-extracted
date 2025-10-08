@@ -1,8 +1,12 @@
 """
 抽奖物品数据爬取脚本
-读取抽奖活动.csv中的筹码类抽奖
+读取抽奖活动.csv中的抽奖活动
 解析每个URL页面中的物品和概率数据
 生成JSON格式文件，按活动id命名
+
+支持类型：
+- 筹码类：单个抽奖池，输出到 chip/ 目录
+- 旗舰宝箱类：双抽奖池（普通宝箱+旗舰宝箱），输出到 flagship/ 目录
 """
 import csv
 import json
@@ -17,6 +21,7 @@ import re
 INPUT_FILE = Path(__file__).parent / "抽奖活动.csv"
 OUTPUT_ROOT_DIR = Path(__file__).parent / "抽奖物品数据"
 OUTPUT_CHIP_DIR = OUTPUT_ROOT_DIR / "chip"
+OUTPUT_FLAGSHIP_DIR = OUTPUT_ROOT_DIR / "flagship"
 CRAWLED_DATA_DIR = Path(__file__).parent / "爬取数据"
 ACTIVITIES_DIR = Path(__file__).parent.parent / "MW解包有益资源" / "contentseparated_assets_activities"
 CURRENCY_DIR = Path(__file__).parent.parent / "MW解包有益资源" / "contentseparated_assets_content" / "textures" / "sprites" / "currency"
@@ -31,8 +36,13 @@ COMMON_ITEM_ID_MAP = {
     # 货币类/资源
     '艺术硬币': 'Artstorm',
     '黄金': 'Hard',
-    '筹码': 'currency',
+    '美金': 'Soft',
+    '筹码': 'currency_gachacoins',
     '1 天高级账户': 'v1_premium_1d',
+    '旗舰钥匙': 'currency_premium_lootboxkey',
+    '钥匙': 'currency_common_lootboxkey',
+    '升级芯片': 'Upgrades',
+    '修理包': 'RepairKit',
 
     # 高级道具
     '高级机载导弹诱饵': 'PremiumAircraftMissileDecoy',
@@ -51,6 +61,9 @@ COMMON_ITEM_ID_MAP = {
     '烟幕': 'TankSmokeBombs',
     '鱼雷诱饵': 'TorpedoDecoy',
 }
+
+# 资源类物品列表（用于判断类型）
+RESOURCE_ITEMS = ['艺术硬币', '黄金', '美金', '筹码', '1 天高级账户', '旗舰钥匙', '钥匙', '升级芯片', '修理包']
 
 
 def load_items_database():
@@ -88,6 +101,21 @@ def load_items_database():
     camo_file = CRAWLED_DATA_DIR / '裝飾品' / '涂装.csv'
     if camo_file.exists():
         files_to_load.append((camo_file, '涂装'))
+
+    # 裝飾品/头像
+    avatar_file = CRAWLED_DATA_DIR / '裝飾品' / '头像.csv'
+    if avatar_file.exists():
+        files_to_load.append((avatar_file, '头像'))
+
+    # 裝飾品/旗帜
+    flag_file = CRAWLED_DATA_DIR / '裝飾品' / '旗帜.csv'
+    if flag_file.exists():
+        files_to_load.append((flag_file, '旗帜'))
+
+    # 裝飾品/头衔
+    title_file = CRAWLED_DATA_DIR / '裝飾品' / '头衔.csv'
+    if title_file.exists():
+        files_to_load.append((title_file, '头衔'))
 
     # 加载所有文件
     for csv_file, default_type in files_to_load:
@@ -368,7 +396,7 @@ def fetch_gacha_data(url):
                 if common_name in item_name:
                     item['id'] = common_id
                     # 判断是资源还是道具
-                    if common_name in ['艺术硬币', '黄金', '筹码', '1 天高级账户']:
+                    if common_name in RESOURCE_ITEMS:
                         item['type'] = '资源'
                     else:
                         item['type'] = '道具'
@@ -385,9 +413,9 @@ def fetch_gacha_data(url):
                     item['id'] = db_item.get('id', '')
                     item['type'] = db_item.get('typeString', '')
 
-                    # 涂装直接使用rarityTypeString，其他类型通过classify_rarity转换
+                    # 涂装、头像、旗帜、头衔直接使用rarityTypeString，其他类型通过classify_rarity转换
                     rarity_type_string = db_item.get('rarityTypeString', '')
-                    if item['type'] == '涂装':
+                    if item['type'] in ['涂装', '头像', '旗帜', '头衔']:
                         item['rarity'] = normalize_rarity(rarity_type_string)
                     else:
                         item['rarity'] = normalize_rarity(classify_rarity(rarity_type_string))
@@ -433,6 +461,28 @@ def save_gacha_json(gacha_id, gacha_type, metadata, items):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
     print(f"    保存: {output_file.name} ({len(items)} 个物品)")
+    return True
+
+
+def save_flagship_json(gacha_id, gacha_type, metadata, lootboxes):
+    """保存旗舰宝箱类数据为JSON"""
+    if not lootboxes:
+        return False
+
+    output_file = OUTPUT_FLAGSHIP_DIR / f"{gacha_id}.json"
+
+    data = {
+        "id": gacha_id,
+        "gacha_type": gacha_type,
+        "metadata": metadata,
+        "lootboxes": lootboxes
+    }
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+    total_items = sum(len(lb.get('items', [])) for lb in lootboxes)
+    print(f"    保存: {output_file.name} ({len(lootboxes)} 个宝箱, {total_items} 个物品)")
     return True
 
 
@@ -484,16 +534,25 @@ def check_currency_gachacoins_exists(gacha_id):
     return currency_file.exists()
 
 
+def check_lootbox_activity_exists(gacha_id):
+    """
+    检查lootbox_activity资源文件是否存在
+    返回: True如果存在widget文件，否则False
+    """
+    if not ACTIVITIES_DIR.exists():
+        return False
+
+    # 检查是否存在widget文件
+    widget_file = ACTIVITIES_DIR / f"lootbox_activity_{gacha_id}_widget.png"
+
+    return widget_file.exists()
+
+
 def generate_index_json(activities_info):
     """
-    生成index.json索引文件
-    activities_info: 新爬取的活动信息列表
-
-    逻辑：
-    1. 读取现有的index.json（如果存在）
-    2. 检查新活动是否已存在（根据id）
-    3. 将不存在的新活动按时间倒序插入
-    4. 保存到chip外面的目录
+    生成统一的index.json索引文件（包含所有类型的活动）
+    支持增量更新，按日期排序
+    activities_info: 新爬取的活动信息列表（筹码类 + 旗舰宝箱类混合）
     """
     output_file = OUTPUT_ROOT_DIR / "index.json"
 
@@ -547,11 +606,12 @@ def generate_index_json(activities_info):
         "activities": sorted_activities
     }
 
-    # 保存到chip外面
+    # 保存到根目录
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(index_data, f, ensure_ascii=False, indent=2)
 
     print(f"\n生成索引: {output_file.name} (总计 {len(sorted_activities)} 个活动)")
+    print(f"位置: {output_file}")
     return True
 
 
@@ -642,10 +702,100 @@ def process_gacha(row):
         return False, None
 
 
+def process_flagship_gacha(row):
+    """
+    处理单个旗舰宝箱类活动
+    返回: (success, activity_info)
+    """
+    gacha_id = row.get('id', '').strip()
+    name = row.get('name', '未知')
+    name_en = row.get('name_en', '')
+    gacha_type = row.get('gacha_type', '').strip()
+    gacha_1_url = row.get('gacha_1_url', '').strip()  # 普通宝箱
+    gacha_2_url = row.get('gacha_2_url', '').strip()  # 旗舰宝箱
+    formatted_date = row.get('formattedDate', '')
+    image_data = row.get('image', '')
+
+    if not gacha_id or not gacha_1_url or not gacha_2_url:
+        return False, None
+
+    print(f"  [{name}] ({gacha_id})")
+
+    # 爬取两个宝箱的数据
+    container_metadata, container_items = fetch_gacha_data(gacha_1_url)
+    flagship_metadata, flagship_items = fetch_gacha_data(gacha_2_url)
+
+    if container_metadata is None or flagship_metadata is None:
+        print(f"    失败")
+        return False, None
+
+    if not container_items and not flagship_items:
+        print(f"    无物品数据")
+        return False, None
+
+    # 构建全局metadata
+    metadata = {
+        'name': name,
+        'formattedDate': formatted_date
+    }
+    if name_en:
+        metadata['nameEn'] = name_en
+
+    # 检查是否存在lootbox_activity资源，如果不存在则添加image数据
+    if not check_lootbox_activity_exists(gacha_id) and image_data:
+        try:
+            import ast
+            image_dict = ast.literal_eval(image_data)
+            if 'default' in image_dict:
+                metadata['image'] = image_dict['default']
+                print(f"    [无lootbox_activity资源] 添加image URL")
+        except:
+            pass
+
+    # 构建lootboxes列表
+    lootboxes = []
+
+    # 普通宝箱
+    if container_items:
+        lootboxes.append({
+            'type': 'container',
+            'metadata': container_metadata,
+            'items': container_items
+        })
+
+    # 旗舰宝箱
+    if flagship_items:
+        lootboxes.append({
+            'type': 'flagship',
+            'metadata': flagship_metadata,
+            'items': flagship_items
+        })
+
+    # 保存JSON
+    success = save_flagship_json(gacha_id, gacha_type, metadata, lootboxes)
+
+    if success:
+        # 返回活动信息用于index.json
+        activity_info = {
+            'id': gacha_id,
+            'gacha_type': gacha_type,
+            'name': name,
+            'formattedDate': formatted_date
+        }
+        if name_en:
+            activity_info['nameEn'] = name_en
+        if 'image' in metadata:
+            activity_info['image'] = metadata['image']
+
+        return True, activity_info
+    else:
+        return False, None
+
+
 def main():
     """主函数"""
     print("=" * 70)
-    print("抽奖物品数据爬取脚本（筹码类）")
+    print("抽奖物品数据爬取脚本")
     print("=" * 70)
 
     # 检查输入文件
@@ -658,6 +808,7 @@ def main():
     # 创建输出目录
     OUTPUT_ROOT_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_CHIP_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_FLAGSHIP_DIR.mkdir(parents=True, exist_ok=True)
 
     # 加载物品数据库
     print(f"\n准备数据...")
@@ -668,57 +819,96 @@ def main():
     print(f"输入: {INPUT_FILE}")
 
     chip_gachas = []
+    flagship_gachas = []
+
     with open(INPUT_FILE, 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
         for row in reader:
             gacha_type = row.get('gacha_type', '').strip()
-            # 只处理筹码类
             if gacha_type == '筹码类':
                 chip_gachas.append(row)
+            elif gacha_type == '旗舰宝箱类':
+                flagship_gachas.append(row)
 
     print(f"  找到 {len(chip_gachas)} 个筹码类抽奖")
+    print(f"  找到 {len(flagship_gachas)} 个旗舰宝箱类抽奖")
 
-    if not chip_gachas:
-        print("\n没有筹码类抽奖需要处理")
-        return
+    # 收集所有活动信息（用于最后生成统一的index.json）
+    all_activities_info = []
 
-    # 并行处理所有筹码类抽奖
-    print(f"\n开始并行爬取...")
-    print("=" * 70)
+    # ==================== 处理筹码类 ====================
+    if chip_gachas:
+        print(f"\n{'=' * 70}")
+        print("开始处理筹码类...")
+        print("=" * 70)
 
-    success_count = 0
-    activities_info = []  # 收集活动信息用于生成index.json
+        success_count = 0
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = {
-            executor.submit(process_gacha, row): row
-            for row in chip_gachas
-        }
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {
+                executor.submit(process_gacha, row): row
+                for row in chip_gachas
+            }
 
-        for future in as_completed(futures):
-            row = futures[future]
-            try:
-                success, activity_info = future.result()
-                if success:
-                    success_count += 1
-                    if activity_info:
-                        activities_info.append(activity_info)
-            except Exception as e:
-                print(f"  [{row.get('name', '未知')}] 错误: {e}")
+            for future in as_completed(futures):
+                row = futures[future]
+                try:
+                    success, activity_info = future.result()
+                    if success:
+                        success_count += 1
+                        if activity_info:
+                            all_activities_info.append(activity_info)
+                except Exception as e:
+                    print(f"  [{row.get('name', '未知')}] 错误: {e}")
+
+        print("\n" + "=" * 70)
+        print("筹码类爬取完成!")
+        print("=" * 70)
+        print(f"成功: {success_count}/{len(chip_gachas)}")
+        print(f"保存位置: {OUTPUT_CHIP_DIR}")
+        print("=" * 70)
+
+    # ==================== 处理旗舰宝箱类 ====================
+    if flagship_gachas:
+        print(f"\n{'=' * 70}")
+        print("开始处理旗舰宝箱类...")
+        print("=" * 70)
+
+        success_count = 0
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {
+                executor.submit(process_flagship_gacha, row): row
+                for row in flagship_gachas
+            }
+
+            for future in as_completed(futures):
+                row = futures[future]
+                try:
+                    success, activity_info = future.result()
+                    if success:
+                        success_count += 1
+                        if activity_info:
+                            all_activities_info.append(activity_info)
+                except Exception as e:
+                    print(f"  [{row.get('name', '未知')}] 错误: {e}")
+
+        print("\n" + "=" * 70)
+        print("旗舰宝箱类爬取完成!")
+        print("=" * 70)
+        print(f"成功: {success_count}/{len(flagship_gachas)}")
+        print(f"保存位置: {OUTPUT_FLAGSHIP_DIR}")
+        print("=" * 70)
+
+    # ==================== 生成统一的index.json ====================
+    if all_activities_info:
+        print(f"\n生成统一索引文件...")
+        generate_index_json(all_activities_info)
+    elif not chip_gachas and not flagship_gachas:
+        print("\n没有需要处理的抽奖活动")
 
     print("\n" + "=" * 70)
-    print("爬取完成!")
-    print("=" * 70)
-    print(f"成功: {success_count}/{len(chip_gachas)}")
-    print(f"保存位置: {OUTPUT_CHIP_DIR}")
-    print("=" * 70)
 
-    # 生成index.json
-    if activities_info:
-        print(f"\n生成索引文件...")
-        generate_index_json(activities_info)
-
-    print("\n" + "=" * 70)
 
 
 if __name__ == "__main__":
