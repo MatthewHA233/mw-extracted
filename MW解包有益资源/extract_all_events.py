@@ -18,7 +18,10 @@ SEARCH_CONFIG = {
     "contentseparated_assets_content/textures/sprites": [
         "currency.spriteatlas.bundle",
         "weapons.spriteatlas.bundle",
-        "units_ships.spriteatlas.bundle"
+        "units_ships.spriteatlas.bundle",
+        "avataricons.spriteatlas.bundle",
+        "flags.spriteatlas.bundle",
+        "titles.spriteatlas.bundle"
     ],
     # 迷彩资源
     "contentseparated_assets_content/textures/sprites/camouflages": [
@@ -35,11 +38,12 @@ ACTIVITIES_SPRITEATLAS_PATH = "contentseparated_assets_content/textures/sprites/
 
 def extract_bundle_task(args):
     """并行提取任务包装函数"""
-    bundle_path, output_dir, is_spriteatlas, bundle_name = args
+    bundle_path, output_dir, is_spriteatlas, bundle_name, force_lowercase = args
 
     try:
         env = UnityPy.load(bundle_path)
         extracted_count = 0
+        skipped_count = 0
 
         for obj in env.objects:
             if obj.type.name in ["Texture2D", "Sprite"]:
@@ -51,25 +55,36 @@ def extract_bundle_task(args):
                         # spriteatlas 每个sprite单独保存，其他直接用包名
                         if is_spriteatlas:
                             img_name = getattr(data, 'name', None) or getattr(data, 'm_Name', None) or f"unnamed_{obj.path_id}"
+
+                            # 如果需要强制小写，转换文件名
+                            if force_lowercase:
+                                img_name = img_name.lower()
+
                             img_path = os.path.join(output_dir, f"{img_name}.png")
                         else:
                             img_path = os.path.join(output_dir, f"{bundle_name}.png")
+
+                        # 检查文件是否已存在
+                        if os.path.exists(img_path):
+                            skipped_count += 1
+                            continue
 
                         img.save(img_path)
                         extracted_count += 1
                 except Exception as e:
                     continue
 
-        return (bundle_name, extracted_count, None)
+        return (bundle_name, extracted_count, skipped_count, None)
 
     except Exception as e:
-        return (bundle_name, 0, str(e))
+        return (bundle_name, 0, 0, str(e))
 
 def extract_activity_gacha_from_spriteatlas(spriteatlas_path, output_dir):
     """从activities.spriteatlas中提取所有活动相关资源"""
     try:
         env = UnityPy.load(str(spriteatlas_path))
         extracted_count = 0
+        skipped_count = 0
 
         for obj in env.objects:
             if obj.type.name in ["Texture2D", "Sprite"]:
@@ -82,15 +97,21 @@ def extract_activity_gacha_from_spriteatlas(spriteatlas_path, output_dir):
                         if hasattr(data, 'image'):
                             img = data.image
                             img_path = os.path.join(output_dir, f"{name}.png")
+
+                            # 检查文件是否已存在
+                            if os.path.exists(img_path):
+                                skipped_count += 1
+                                continue
+
                             img.save(img_path)
                             extracted_count += 1
                 except:
                     continue
 
-        return extracted_count
+        return extracted_count, skipped_count
 
     except Exception as e:
-        return 0
+        return 0, 0
 
 def main():
     print("=" * 70)
@@ -157,12 +178,15 @@ def main():
         for bundle_path in bundles:
             bundle_name = os.path.basename(bundle_path).replace('.bundle', '').replace('.png', '').replace('.spriteatlas', '')
 
+            # 判断是否需要强制小写（针对 contentseparated_assets_assets/content/textures/sprites）
+            force_lowercase = "contentseparated_assets_assets" in folder_name
+
             if is_spriteatlas:
                 bundle_output = output_dir / bundle_name
                 os.makedirs(bundle_output, exist_ok=True)
-                tasks.append((str(bundle_path), str(bundle_output), True, bundle_name))
+                tasks.append((str(bundle_path), str(bundle_output), True, bundle_name, force_lowercase))
             else:
-                tasks.append((str(bundle_path), str(output_dir), False, bundle_name))
+                tasks.append((str(bundle_path), str(output_dir), False, bundle_name, force_lowercase))
 
     total_files = len(tasks)
     if total_files == 0:
@@ -175,19 +199,25 @@ def main():
     # 并行提取
     completed = 0
     total_extracted = 0
+    total_skipped = 0
 
     with ProcessPoolExecutor(max_workers=workers) as executor:
         futures = {executor.submit(extract_bundle_task, task): task for task in tasks}
 
         for future in as_completed(futures):
-            bundle_name, count, error = future.result()
+            bundle_name, count, skipped, error = future.result()
             completed += 1
 
             if error:
                 print(f"[{completed}/{total_files}] ✗ {bundle_name} - {error}")
-            elif count > 0:
-                print(f"[{completed}/{total_files}] ✓ {bundle_name} ({count} 张)")
-                total_extracted += 1
+            elif count > 0 or skipped > 0:
+                status = f"✓ {bundle_name} (提取 {count} 张"
+                if skipped > 0:
+                    status += f", 跳过 {skipped} 张"
+                status += ")"
+                print(f"[{completed}/{total_files}] {status}")
+                total_extracted += count
+                total_skipped += skipped
             else:
                 print(f"[{completed}/{total_files}] ✗ {bundle_name} (无内容)")
 
@@ -202,10 +232,15 @@ def main():
         os.makedirs(activities_output_dir, exist_ok=True)
 
         print(f"正在扫描: {spriteatlas_path.name}")
-        activity_count = extract_activity_gacha_from_spriteatlas(spriteatlas_path, str(activities_output_dir))
+        activity_count, activity_skipped = extract_activity_gacha_from_spriteatlas(spriteatlas_path, str(activities_output_dir))
 
-        if activity_count > 0:
-            print(f"✓ 从 spriteatlas 提取了 {activity_count} 个活动资源")
+        if activity_count > 0 or activity_skipped > 0:
+            status = f"✓ 提取了 {activity_count} 个活动资源"
+            if activity_skipped > 0:
+                status += f"，跳过 {activity_skipped} 个"
+            print(status)
+            total_extracted += activity_count
+            total_skipped += activity_skipped
         else:
             print("✗ spriteatlas 中未找到活动资源")
     else:
@@ -213,7 +248,9 @@ def main():
 
     # 统计
     print(f"\n{'=' * 70}")
-    print(f"提取完成: {total_extracted}/{total_files} 个包")
+    print(f"提取完成!")
+    print(f"  新提取: {total_extracted} 个文件")
+    print(f"  跳过: {total_skipped} 个文件（已存在）")
     print(f"保存位置: {output_base}")
     print("=" * 70)
 

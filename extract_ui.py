@@ -6,51 +6,54 @@ from pathlib import Path
 GAME_DATA_PATH = r"Modern Warships_Data\StreamingAssets\aa\w64\contentseparated_assets_content\textures\sprites"
 OUTPUT_PATH = r"MW资源\extracted"
 
-# 要提取的UI资源包及其中文名
-UI_BUNDLES = {
-    "units_ships.spriteatlas.bundle": "船只图标 (Ships)",
-    "units_aircrafts.spriteatlas.bundle": "飞机图标 (Aircrafts)",
-    "units_uniticons.spriteatlas.bundle": "单位图标 (Unit Icons)",
-    "weapons.spriteatlas.bundle": "武器图标 (Weapons)",
-    "consumables.spriteatlas.bundle": "消耗品图标 (Consumables)",
-    "itemtypes.spriteatlas.bundle": "物品类型 (Item Types)",
-    "itemclasstypes.spriteatlas.bundle": "物品等级类型 (Item Class Types)",
-    "subsystemtypes.spriteatlas.bundle": "子系统类型 (Subsystem Types)",
-    "subclasstypes.spriteatlas.bundle": "子等级类型 (Subclass Types)",
-    "skins.spriteatlas.bundle": "皮肤 (Skins)",
-    "camouflages.spriteatlas.bundle": "迷彩 (Camouflages)",
-    "flags.spriteatlas.bundle": "旗帜 (Flags)",
-    "avatars.spriteatlas.bundle": "头像 (Avatars)",
-    "avataricons.spriteatlas.bundle": "头像图标 (Avatar Icons)",
-    "currency.spriteatlas.bundle": "货币 (Currency)",
-    "ranks.spriteatlas.bundle": "军衔 (Ranks)",
-    "offers.spriteatlas.bundle": "优惠 (Offers)",
-    "premiumshop.spriteatlas.bundle": "高级商店 (Premium Shop)",
-    "activities.spriteatlas.bundle": "活动 (Activities)",
-    "gacha.spriteatlas.bundle": "抽奖 (Gacha)",
-    "eventpass.spriteatlas.bundle": "活动通行证 (Event Pass)",
-    "mainmenu.spriteatlas.bundle": "主菜单 (Main Menu)",
-    "titles.spriteatlas.bundle": "称号 (Titles)",
-    "teamicons.spriteatlas.bundle": "队伍图标 (Team Icons)",
-    "projectilemarkers.spriteatlas.bundle": "弹道标记 (Projectile Markers)",
-    "playerraritytypes.spriteatlas.bundle": "玩家稀有度 (Player Rarity)",
-    "dailymissiontypes.spriteatlas.bundle": "每日任务类型 (Daily Mission Types)",
-    "clanflags.spriteatlas.bundle": "军团旗帜 (Clan Flags)",
-}
+# 要提取的UI资源包列表（实际存在的所有 spriteatlas.bundle 文件）
+UI_BUNDLES = [
+    "activities.spriteatlas.bundle",
+    "avataricons.spriteatlas.bundle",
+    "avatars.spriteatlas.bundle",
+    "camouflages.spriteatlas.bundle",
+    "clanflags.spriteatlas.bundle",
+    "consumables.spriteatlas.bundle",
+    "currency.spriteatlas.bundle",
+    "dailymissiontypes.spriteatlas.bundle",
+    "eventpass.spriteatlas.bundle",
+    "fallbacknoalpha.spriteatlas.bundle",
+    "flags.spriteatlas.bundle",
+    "gacha.spriteatlas.bundle",
+    "itemclasstypes.spriteatlas.bundle",
+    "itemtypes.spriteatlas.bundle",
+    "mainmenu.spriteatlas.bundle",
+    "offers.spriteatlas.bundle",
+    "playerraritytypes.spriteatlas.bundle",
+    "premiumshop.spriteatlas.bundle",
+    "projectilemarkers.spriteatlas.bundle",
+    "ranks.spriteatlas.bundle",
+    "skins.spriteatlas.bundle",
+    "subclasstypes.spriteatlas.bundle",
+    "subsystemtypes.spriteatlas.bundle",
+    "teamicons.spriteatlas.bundle",
+    "titles.spriteatlas.bundle",
+    "units_aircrafts.spriteatlas.bundle",
+    "units_ships.spriteatlas.bundle",
+    "units_uniticons.spriteatlas.bundle",
+    "weapons.spriteatlas.bundle",
+]
 
 def extract_bundle(bundle_path, output_dir):
     """提取单个bundle中的所有图片"""
     bundle_filename = os.path.basename(bundle_path)
     bundle_name = bundle_filename.replace('.spriteatlas.bundle', '')
 
-    # 获取中文名
-    chinese_name = UI_BUNDLES.get(bundle_filename, bundle_name)
-    folder_name = f"{bundle_name} - {chinese_name}"
+    print(f"\nProcessing: {bundle_name}")
 
-    print(f"\n正在处理: {chinese_name}")
+    # 创建输出目录（使用原名称）
+    output_folder = os.path.join(output_dir, bundle_name)
 
-    # 创建输出目录
-    output_folder = os.path.join(output_dir, folder_name)
+    # 检查文件夹是否已存在
+    if os.path.exists(output_folder):
+        print(f"  Skip: Folder already exists")
+        return -1  # 返回-1表示跳过
+
     os.makedirs(output_folder, exist_ok=True)
 
     try:
@@ -111,23 +114,27 @@ def main():
 
     total_extracted = 0
     successful_bundles = 0
+    skipped_bundles = 0
 
     # 提取每个bundle
-    for bundle_filename in UI_BUNDLES.keys():
+    for bundle_filename in UI_BUNDLES:
         bundle_path = sprites_dir / bundle_filename
 
         if not bundle_path.exists():
-            print(f"\nSkip: {UI_BUNDLES[bundle_filename]} (not found)")
+            print(f"\nSkip: {bundle_filename} (not found)")
             continue
 
         count = extract_bundle(str(bundle_path), str(output_dir))
-        if count > 0:
+        if count == -1:
+            skipped_bundles += 1
+        elif count > 0:
             successful_bundles += 1
             total_extracted += count
 
     print("\n" + "=" * 60)
     print(f"Extraction Complete!")
-    print(f"Successful: {successful_bundles}/{len(UI_BUNDLES)} bundles")
+    print(f"Successful: {successful_bundles} bundles")
+    print(f"Skipped: {skipped_bundles} bundles (already exist)")
     print(f"Total: {total_extracted} images")
     print(f"Location: {output_dir}")
     print("=" * 60)

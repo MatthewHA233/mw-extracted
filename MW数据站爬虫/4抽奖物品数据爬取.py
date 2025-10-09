@@ -43,6 +43,7 @@ COMMON_ITEM_ID_MAP = {
     '钥匙': 'currency_common_lootboxkey',
     '升级芯片': 'Upgrades',
     '修理包': 'RepairKit',
+    '导弹诱饵': 'MissileDecoy',
 
     # 高级道具
     '高级机载导弹诱饵': 'PremiumAircraftMissileDecoy',
@@ -389,6 +390,11 @@ def fetch_gacha_data(url):
             item['name'] = item_name
             item['probability'] = parse_probability(prob_str)
             item['limit'] = parse_limit(prob_str)
+
+            # 特殊处理：[美]武库舰概率和限制缺失问题
+            if item_name == '[美]武库舰':
+                item['probability'] = 0.003
+                item['limit'] = 1
 
             # 先检查是否是普通物品（资源/道具）
             is_common_item = False
