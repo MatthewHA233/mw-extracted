@@ -12,6 +12,8 @@ MW解包有益资源/contentseparated_assets_activities/
 MW解包有益资源/contentseparated_assets_content/
 MW解包有益资源/contentseparated_assets_offers/
 MW解包有益资源/contentseparated_assets_assets/
+MW解包有益资源/contentseparated_assets_ui_eventhub/
 MW数据站爬虫/抽奖物品数据/
 MW数据站爬虫/爬取数据/
 MW数据站爬虫/字段数据/
+__pycache__
