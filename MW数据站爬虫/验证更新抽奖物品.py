@@ -23,14 +23,14 @@ COMMON_ITEM_ID_MAP = {
     '筹码': 'currency',
     '1 天高级账户': 'v1_premium_1d',
 
-    # 高级道具
+    # 高级战斗增益
     '高级机载导弹诱饵': 'PremiumAircraftMissileDecoy',
     '高级弹药储备': 'PremiumAmmunitionReserve',
     '高级导弹诱饵': 'PremiumMissileDecoy',
     '高级修理包': 'PremiumRepairKit',
     '高级鱼雷诱饵': 'PremiumTorpedoDecoy',
 
-    # 特殊道具
+    # 特殊战斗增益
     '机载电子对抗': 'AirElectronicWarfare',
     '弹药储备': 'AmmunitionReserve',
     '电子对抗': 'ElectronicWarfare',
@@ -179,7 +179,7 @@ def update_item_info(item):
     probability = item.get('probability')
     limit = item.get('limit')
 
-    # 检查是否是普通物品（资源/道具）
+    # 检查是否是普通物品（资源/战斗增益）
     is_common_item = False
     for common_name, common_id in COMMON_ITEM_ID_MAP.items():
         if common_name in item_name:
@@ -187,7 +187,7 @@ def update_item_info(item):
             if common_name in ['艺术硬币', '黄金', '筹码', '1 天高级账户']:
                 item['type'] = '资源'
             else:
-                item['type'] = '道具'
+                item['type'] = '战斗增益'
             item['rarity'] = 'common'
             is_common_item = True
             break
