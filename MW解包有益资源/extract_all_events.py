@@ -55,13 +55,13 @@ def extract_bundle_task(args):
                         img = data.image
                         img_name = getattr(data, 'name', None) or getattr(data, 'm_Name', None) or f"unnamed_{obj.path_id}"
 
-                        # eventhub 特殊处理：提取 event_*_gacha* 和 event_*_background 资源
+                        # eventhub 特殊处理：提取 event_*_gacha*、event_*_background 和 event_*_widget 资源
                         if is_eventhub:
                             if not img_name.startswith('event_'):
                                 continue
 
-                            # gacha 和 background 资源都输出到 eventhub 目录
-                            if 'gacha' in img_name or 'background' in img_name.lower():
+                            # gacha、background 和 widget 资源都输出到 eventhub 目录
+                            if 'gacha' in img_name or 'background' in img_name.lower() or 'widget' in img_name.lower():
                                 img_path = os.path.join(output_dir, f"{img_name}.png")
                             else:
                                 continue
