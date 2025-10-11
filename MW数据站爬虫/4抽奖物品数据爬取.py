@@ -7,6 +7,7 @@
 支持类型：
 - 筹码类：单个抽奖池，输出到 chip/ 目录
 - 旗舰宝箱类：双抽奖池（普通宝箱+旗舰宝箱），输出到 flagship/ 目录
+- 机密货物类：双抽奖池（货运无人机+机密货物），输出到 cargo/ 目录
 """
 import csv
 import json
@@ -22,49 +23,58 @@ INPUT_FILE = Path(__file__).parent / "抽奖活动.csv"
 OUTPUT_ROOT_DIR = Path(__file__).parent / "抽奖物品数据"
 OUTPUT_CHIP_DIR = OUTPUT_ROOT_DIR / "chip"
 OUTPUT_FLAGSHIP_DIR = OUTPUT_ROOT_DIR / "flagship"
+OUTPUT_CARGO_DIR = OUTPUT_ROOT_DIR / "cargo"
 CRAWLED_DATA_DIR = Path(__file__).parent / "爬取数据"
 ACTIVITIES_DIR = Path(__file__).parent.parent / "MW解包有益资源" / "contentseparated_assets_activities"
+EVENTHUB_DIR = Path(__file__).parent.parent / "MW解包有益资源" / "contentseparated_assets_ui_eventhub"
 CURRENCY_DIR = Path(__file__).parent.parent / "MW解包有益资源" / "contentseparated_assets_content" / "textures" / "sprites" / "currency"
+ITEM_TYPE_MAPPING_FILE = Path(__file__).parent.parent / "物品类型映射.json"
 BASE_URL = "https://mwstats.info"
 
 
 # 物品数据库（从爬取数据CSV加载）
 items_database = {}
 
-# 普通物品名称到id的映射
-COMMON_ITEM_ID_MAP = {
-    # 货币类/资源
-    '艺术硬币': 'Artstorm',
-    '黄金': 'Hard',
-    '美金': 'Soft',
-    '筹码': 'currency_gachacoins',
-    '1 天高级账户': 'v1_premium_1d',
-    '旗舰钥匙': 'currency_premium_lootboxkey',
-    '钥匙': 'currency_common_lootboxkey',
-    '升级芯片': 'Upgrades',
-    '修理包': 'RepairKit',
-    '导弹诱饵': 'MissileDecoy',
+# 普通物品名称到id的映射（从JSON加载）
+COMMON_ITEM_ID_MAP = {}
+# 资源类物品集合（从JSON加载）
+RESOURCE_ITEMS = set()
 
-    # 高级道具
-    '高级机载导弹诱饵': 'PremiumAircraftMissileDecoy',
-    '高级弹药储备': 'PremiumAmmunitionReserve',
-    '高级导弹诱饵': 'PremiumMissileDecoy',
-    '高级修理包': 'PremiumRepairKit',
-    '高级鱼雷诱饵': 'PremiumTorpedoDecoy',
 
-    # 特殊道具
-    '机载电子对抗': 'AirElectronicWarfare',
-    '弹药储备': 'AmmunitionReserve',
-    '电子对抗': 'ElectronicWarfare',
-    '引擎过载': 'EngineBoost',
-    '氧气储备': 'SubmarineOxygenReserve',
-    '应急制氧': 'SubmarineOxygenReserve',
-    '烟幕': 'TankSmokeBombs',
-    '鱼雷诱饵': 'TorpedoDecoy',
-}
+def load_item_type_mappings():
+    """从JSON文件加载物品类型映射"""
+    global COMMON_ITEM_ID_MAP, RESOURCE_ITEMS
 
-# 资源类物品列表（用于判断类型）
-RESOURCE_ITEMS = ['艺术硬币', '黄金', '美金', '筹码', '1 天高级账户', '旗舰钥匙', '钥匙', '升级芯片', '修理包']
+    if not ITEM_TYPE_MAPPING_FILE.exists():
+        print(f"  警告: 找不到物品类型映射文件: {ITEM_TYPE_MAPPING_FILE}")
+        return
+
+    try:
+        with open(ITEM_TYPE_MAPPING_FILE, 'r', encoding='utf-8') as f:
+            mappings = json.load(f)
+
+        # 构建 COMMON_ITEM_ID_MAP
+        for item in mappings.get('common_items', []):
+            name = item['name']
+            item_id = item['id']
+            item_type = item['type']
+
+            COMMON_ITEM_ID_MAP[name] = item_id
+
+            # 处理别名（如果有）
+            if 'aliases' in item:
+                for alias in item['aliases']:
+                    COMMON_ITEM_ID_MAP[alias] = item_id
+
+            # 记录资源类物品
+            if item_type == '资源':
+                RESOURCE_ITEMS.add(name)
+
+        print(f"  加载了 {len(COMMON_ITEM_ID_MAP)} 个普通物品映射")
+        print(f"  其中 {len(RESOURCE_ITEMS)} 个资源类物品")
+
+    except Exception as e:
+        print(f"  加载物品类型映射失败: {e}")
 
 
 def load_items_database():
@@ -492,6 +502,28 @@ def save_flagship_json(gacha_id, gacha_type, metadata, lootboxes):
     return True
 
 
+def save_cargo_json(gacha_id, gacha_type, metadata, cargos):
+    """保存机密货物类数据为JSON"""
+    if not cargos:
+        return False
+
+    output_file = OUTPUT_CARGO_DIR / f"{gacha_id}.json"
+
+    data = {
+        "id": gacha_id,
+        "gacha_type": gacha_type,
+        "metadata": metadata,
+        "cargos": cargos
+    }
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+    total_items = sum(len(c.get('items', [])) for c in cargos)
+    print(f"    保存: {output_file.name} ({len(cargos)} 个货箱, {total_items} 个物品)")
+    return True
+
+
 def parse_date_for_sorting(formatted_date):
     """
     解析日期字符串用于排序
@@ -550,6 +582,48 @@ def check_lootbox_activity_exists(gacha_id):
 
     # 检查是否存在widget文件
     widget_file = ACTIVITIES_DIR / f"lootbox_activity_{gacha_id}_widget.png"
+
+    return widget_file.exists()
+
+
+def check_bigevent_currency_gameplay_exists(gacha_id):
+    """
+    检查bigevent_currency_gacha_gameplay资源文件是否存在
+    返回: True如果存在，否则False
+    """
+    if not CURRENCY_DIR.exists():
+        return False
+
+    # 检查是否存在bigevent_currency_gacha_gameplay文件
+    currency_file = CURRENCY_DIR / f"bigevent_currency_gacha_gameplay_{gacha_id}.png"
+
+    return currency_file.exists()
+
+
+def check_bigevent_currency_rm_exists(gacha_id):
+    """
+    检查bigevent_currency_gacha_rm资源文件是否存在
+    返回: True如果存在，否则False
+    """
+    if not CURRENCY_DIR.exists():
+        return False
+
+    # 检查是否存在bigevent_currency_gacha_rm文件
+    currency_file = CURRENCY_DIR / f"bigevent_currency_gacha_rm_{gacha_id}.png"
+
+    return currency_file.exists()
+
+
+def check_eventhub_widget_exists(gacha_id):
+    """
+    检查eventhub event_*_widget资源文件是否存在
+    返回: True如果存在，否则False
+    """
+    if not EVENTHUB_DIR.exists():
+        return False
+
+    # 检查是否存在event_*_widget文件
+    widget_file = EVENTHUB_DIR / f"event_{gacha_id}_widget.png"
 
     return widget_file.exists()
 
@@ -798,6 +872,122 @@ def process_flagship_gacha(row):
         return False, None
 
 
+def process_cargo_gacha(row):
+    """
+    处理单个机密货物类活动
+    返回: (success, activity_info)
+    """
+    gacha_id = row.get('id', '').strip()
+    name = row.get('name', '未知')
+    name_en = row.get('name_en', '')
+    gacha_type = row.get('gacha_type', '').strip()
+    gacha_1_url = row.get('gacha_1_url', '').strip()  # 货运无人机
+    gacha_2_url = row.get('gacha_2_url', '').strip()  # 机密货物
+    formatted_date = row.get('formattedDate', '')
+    image_data = row.get('image', '')
+
+    if not gacha_id or not gacha_1_url or not gacha_2_url:
+        return False, None
+
+    print(f"  [{name}] ({gacha_id})")
+
+    # 爬取两个货箱的数据
+    gameplay_metadata, gameplay_items = fetch_gacha_data(gacha_1_url)
+    rm_metadata, rm_items = fetch_gacha_data(gacha_2_url)
+
+    if gameplay_metadata is None or rm_metadata is None:
+        print(f"    失败")
+        return False, None
+
+    if not gameplay_items and not rm_items:
+        print(f"    无物品数据")
+        return False, None
+
+    # 构建全局metadata
+    metadata = {
+        'name': name,
+        'formattedDate': formatted_date
+    }
+    if name_en:
+        metadata['nameEn'] = name_en
+
+    # 检查是否存在eventhub widget资源，如果不存在则添加image数据
+    if not check_eventhub_widget_exists(gacha_id) and image_data:
+        try:
+            import ast
+            image_dict = ast.literal_eval(image_data)
+            if 'default' in image_dict:
+                metadata['image'] = image_dict['default']
+                print(f"    [无event_{gacha_id}_widget资源] 添加image URL")
+        except:
+            pass
+
+    # 处理货运无人机货币图片（bigevent_currency_gacha_gameplay）
+    if gameplay_metadata and 'currency_gachacoins_image' in gameplay_metadata:
+        # 提取URL并删除通用字段名
+        currency_image_url = gameplay_metadata.pop('currency_gachacoins_image')
+
+        # 只有本地没有资源时，才添加正确命名的字段
+        if not check_bigevent_currency_gameplay_exists(gacha_id):
+            gameplay_metadata['bigevent_currency_gacha_gameplay_image'] = currency_image_url
+            print(f"    [无bigevent_currency_gacha_gameplay资源] 添加货币图片URL")
+
+    # 处理机密货物货币图片（bigevent_currency_gacha_rm）
+    if rm_metadata and 'currency_gachacoins_image' in rm_metadata:
+        # 提取URL并删除通用字段名
+        currency_image_url = rm_metadata.pop('currency_gachacoins_image')
+
+        # 只有本地没有资源时，才添加正确命名的字段
+        if not check_bigevent_currency_rm_exists(gacha_id):
+            rm_metadata['bigevent_currency_gacha_rm_image'] = currency_image_url
+            print(f"    [无bigevent_currency_gacha_rm资源] 添加货币图片URL")
+
+    # 构建cargos列表
+    cargos = []
+
+    # 货运无人机（bigevent_currency_gacha_gameplay）
+    if gameplay_items:
+        cargos.append({
+            'type': 'gameplay',
+            'metadata': gameplay_metadata,
+            'items': gameplay_items
+        })
+
+    # 机密货物（bigevent_currency_gacha_rm）
+    if rm_items:
+        cargos.append({
+            'type': 'rm',
+            'metadata': rm_metadata,
+            'items': rm_items
+        })
+
+    # 保存JSON
+    success = save_cargo_json(gacha_id, gacha_type, metadata, cargos)
+
+    if success:
+        # 返回活动信息用于index.json
+        activity_info = {
+            'id': gacha_id,
+            'gacha_type': gacha_type,
+            'name': name,
+            'formattedDate': formatted_date
+        }
+        if name_en:
+            activity_info['nameEn'] = name_en
+        if 'image' in metadata:
+            activity_info['image'] = metadata['image']
+
+        # 如果有货币图片，也添加到index中
+        if gameplay_metadata and 'bigevent_currency_gacha_gameplay_image' in gameplay_metadata:
+            activity_info['bigevent_currency_gacha_gameplay_image'] = gameplay_metadata['bigevent_currency_gacha_gameplay_image']
+        if rm_metadata and 'bigevent_currency_gacha_rm_image' in rm_metadata:
+            activity_info['bigevent_currency_gacha_rm_image'] = rm_metadata['bigevent_currency_gacha_rm_image']
+
+        return True, activity_info
+    else:
+        return False, None
+
+
 def main():
     """主函数"""
     print("=" * 70)
@@ -815,9 +1005,11 @@ def main():
     OUTPUT_ROOT_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_CHIP_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_FLAGSHIP_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_CARGO_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 加载物品数据库
+    # 加载物品类型映射和数据库
     print(f"\n准备数据...")
+    load_item_type_mappings()
     load_items_database()
 
     # 读取抽奖活动数据
@@ -826,6 +1018,7 @@ def main():
 
     chip_gachas = []
     flagship_gachas = []
+    cargo_gachas = []
 
     with open(INPUT_FILE, 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
@@ -835,9 +1028,12 @@ def main():
                 chip_gachas.append(row)
             elif gacha_type == '旗舰宝箱类':
                 flagship_gachas.append(row)
+            elif gacha_type == '机密货物类':
+                cargo_gachas.append(row)
 
     print(f"  找到 {len(chip_gachas)} 个筹码类抽奖")
     print(f"  找到 {len(flagship_gachas)} 个旗舰宝箱类抽奖")
+    print(f"  找到 {len(cargo_gachas)} 个机密货物类抽奖")
 
     # 收集所有活动信息（用于最后生成统一的index.json）
     all_activities_info = []
@@ -906,11 +1102,43 @@ def main():
         print(f"保存位置: {OUTPUT_FLAGSHIP_DIR}")
         print("=" * 70)
 
+    # ==================== 处理机密货物类 ====================
+    if cargo_gachas:
+        print(f"\n{'=' * 70}")
+        print("开始处理机密货物类...")
+        print("=" * 70)
+
+        success_count = 0
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {
+                executor.submit(process_cargo_gacha, row): row
+                for row in cargo_gachas
+            }
+
+            for future in as_completed(futures):
+                row = futures[future]
+                try:
+                    success, activity_info = future.result()
+                    if success:
+                        success_count += 1
+                        if activity_info:
+                            all_activities_info.append(activity_info)
+                except Exception as e:
+                    print(f"  [{row.get('name', '未知')}] 错误: {e}")
+
+        print("\n" + "=" * 70)
+        print("机密货物类爬取完成!")
+        print("=" * 70)
+        print(f"成功: {success_count}/{len(cargo_gachas)}")
+        print(f"保存位置: {OUTPUT_CARGO_DIR}")
+        print("=" * 70)
+
     # ==================== 生成统一的index.json ====================
     if all_activities_info:
         print(f"\n生成统一索引文件...")
         generate_index_json(all_activities_info)
-    elif not chip_gachas and not flagship_gachas:
+    elif not chip_gachas and not flagship_gachas and not cargo_gachas:
         print("\n没有需要处理的抽奖活动")
 
     print("\n" + "=" * 70)
