@@ -287,7 +287,7 @@ def classify_item_type(name, url, type_str):
     if '硬币' in name or '黄金' in name or '筹码' in name:
         return "资源"
     elif '诱饵' in name or '探测器' in name or '账户' in name:
-        return "道具"
+        return "战斗增益"
 
     return "其它"
 
@@ -406,16 +406,18 @@ def fetch_gacha_data(url):
                 item['probability'] = 0.003
                 item['limit'] = 1
 
-            # 先检查是否是普通物品（资源/道具）
+            # 先检查是否是普通物品（资源/战斗增益）
+            # 按名称长度降序排列，优先匹配长名称（避免"高级导弹诱饵"被匹配为"导弹诱饵"）
             is_common_item = False
-            for common_name, common_id in COMMON_ITEM_ID_MAP.items():
+            sorted_common_items = sorted(COMMON_ITEM_ID_MAP.items(), key=lambda x: len(x[0]), reverse=True)
+            for common_name, common_id in sorted_common_items:
                 if common_name in item_name:
                     item['id'] = common_id
-                    # 判断是资源还是道具
+                    # 判断是资源还是战斗增益
                     if common_name in RESOURCE_ITEMS:
                         item['type'] = '资源'
                     else:
-                        item['type'] = '道具'
+                        item['type'] = '战斗增益'
                     item['rarity'] = 'common'
                     is_common_item = True
                     break
