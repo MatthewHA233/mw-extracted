@@ -1,0 +1,69 @@
+{
+  "excluded_items": [
+    "AvatarPortraitBevelTexture_01",
+    "AvatarPortraitBevelTexture_02",
+    "sactx-0-2048x2048-BC7-AvatarIcons-200caf48",
+    "sactx-1-2048x2048-BC7-AvatarIcons-200caf48",
+    "sactx-10-2048x2048-BC7-AvatarIcons-200caf48",
+    "sactx-11-2048x2048-BC7-AvatarIcons-200caf48",
+    "sactx-12-2048x2048-BC7-AvatarIcons-200caf48",
+    "sactx-13-2048x2048-BC7-AvatarIcons-200caf48",
+    "sactx-14-2048x2048-BC7-AvatarIcons-200caf48",
+    "sactx-2-2048x2048-BC7-AvatarIcons-200caf48",
+    "sactx-3-2048x2048-BC7-AvatarIcons-200caf48",
+    "sactx-4-2048x2048-BC7-AvatarIcons-200caf48",
+    "sactx-5-2048x2048-BC7-AvatarIcons-200caf48"
+  ],
+  "recorded_items": [
+    {
+      "id": "S5Class",
+      "name_cn": "[印]S5",
+      "name_en": "INS S5",
+      "type": "战舰",
+      "category": "战舰",
+      "added_date": "2025.10",
+      "folder": "",
+      "rarity": "legendary"
+    },
+    {
+      "id": "Forbin",
+      "name_cn": "[法]福尔宾",
+      "name_en": "FS FORBIN",
+      "type": "战舰",
+      "category": "战舰",
+      "added_date": "2025.10",
+      "folder": "",
+      "rarity": "epic"
+    },
+    {
+      "id": "Nasir",
+      "name_cn": "纳西尔",
+      "name_en": "NASIR",
+      "type": "导弹",
+      "category": "武器",
+      "added_date": "2025.10",
+      "folder": "",
+      "rarity": "epic"
+    },
+    {
+      "id": "SuperAlsace",
+      "name_cn": "[法]超级阿尔萨斯",
+      "name_en": "FS SUPER ALSACE",
+      "type": "战舰",
+      "category": "战舰",
+      "added_date": "2025.10",
+      "folder": "",
+      "rarity": "legendary"
+    },
+    {
+      "id": "Archer",
+      "name_cn": "弓箭手(155 MM)",
+      "name_en": "ARCHER(155 MM)",
+      "type": "主炮",
+      "category": "武器",
+      "added_date": "2025.10",
+      "folder": "",
+      "rarity": "legendary"
+    }
+  ]
+}

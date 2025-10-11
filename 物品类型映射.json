@@ -1,0 +1,171 @@
+{
+  "common_items": [
+    {
+      "id": "Artstorm",
+      "name": "艺术硬币",
+      "type": "资源",
+      "category": "货币"
+    },
+    {
+      "id": "Hard",
+      "name": "黄金",
+      "type": "资源",
+      "category": "货币"
+    },
+    {
+      "id": "Soft",
+      "name": "美金",
+      "type": "资源",
+      "category": "货币"
+    },
+    {
+      "id": "currency_gachacoins",
+      "name": "筹码",
+      "type": "资源",
+      "category": "货币"
+    },
+    {
+      "id": "Token",
+      "name": "代币",
+      "type": "资源",
+      "category": "货币"
+    },
+    {
+      "id": "v1_premium_1d",
+      "name": "1 天高级账户",
+      "type": "资源",
+      "category": "会员"
+    },
+    {
+      "id": "currency_premium_lootboxkey",
+      "name": "旗舰钥匙",
+      "type": "资源",
+      "category": "钥匙"
+    },
+    {
+      "id": "currency_common_lootboxkey",
+      "name": "钥匙",
+      "type": "资源",
+      "category": "钥匙"
+    },
+    {
+      "id": "Upgrades",
+      "name": "升级芯片",
+      "type": "资源",
+      "category": "货币"
+    },
+    {
+      "id": "RepairKit",
+      "name": "修理包",
+      "type": "资源",
+      "category": "消耗品"
+    },
+    {
+      "id": "MissileDecoy",
+      "name": "导弹诱饵",
+      "type": "资源",
+      "category": "消耗品"
+    },
+    {
+      "id": "bigevent_currency_gacha_gameplay",
+      "name": "无人机电池",
+      "type": "资源",
+      "category": "活动货币"
+    },
+    {
+      "id": "bigevent_currency_gacha_rm",
+      "name": "授权密钥",
+      "type": "资源",
+      "category": "活动货币"
+    },
+    {
+      "id": "PremiumAircraftMissileDecoy",
+      "name": "高级机载导弹诱饵",
+      "type": "道具",
+      "category": "高级消耗品"
+    },
+    {
+      "id": "PremiumAmmunitionReserve",
+      "name": "高级弹药储备",
+      "type": "道具",
+      "category": "高级消耗品"
+    },
+    {
+      "id": "PremiumMissileDecoy",
+      "name": "高级导弹诱饵",
+      "type": "道具",
+      "category": "高级消耗品"
+    },
+    {
+      "id": "PremiumRepairKit",
+      "name": "高级修理包",
+      "type": "道具",
+      "category": "高级消耗品"
+    },
+    {
+      "id": "PremiumTorpedoDecoy",
+      "name": "高级鱼雷诱饵",
+      "type": "道具",
+      "category": "高级消耗品"
+    },
+    {
+      "id": "AirElectronicWarfare",
+      "name": "机载电子对抗",
+      "type": "道具",
+      "category": "战术道具"
+    },
+    {
+      "id": "AmmunitionReserve",
+      "name": "弹药储备",
+      "type": "道具",
+      "category": "战术道具"
+    },
+    {
+      "id": "ElectronicWarfare",
+      "name": "电子对抗",
+      "type": "道具",
+      "category": "战术道具"
+    },
+    {
+      "id": "EngineBoost",
+      "name": "引擎过载",
+      "type": "道具",
+      "category": "战术道具"
+    },
+    {
+      "id": "SubmarineOxygenReserve",
+      "name": "氧气储备",
+      "type": "道具",
+      "category": "战术道具",
+      "aliases": ["应急制氧"]
+    },
+    {
+      "id": "TankSmokeBombs",
+      "name": "烟幕",
+      "type": "道具",
+      "category": "战术道具"
+    },
+    {
+      "id": "TorpedoDecoy",
+      "name": "鱼雷诱饵",
+      "type": "道具",
+      "category": "战术道具"
+    },
+    {
+      "id": "Eventbooster",
+      "name": "活动通行证积分加成",
+      "type": "道具",
+      "category": "特殊道具"
+    }
+  ],
+  "category_mappings": {
+    "战舰": "战舰",
+    "无人舰艇": "无人舰艇",
+    "航空器": "航空器",
+    "武器": "武器",
+    "涂装": "涂装",
+    "头像": "头像",
+    "旗帜": "旗帜",
+    "头衔": "头衔"
+  }
+}
