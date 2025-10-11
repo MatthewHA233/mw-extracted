@@ -42,7 +42,7 @@ CATEGORY_IMAGE_MAP = {
     "涂装": "camouflages",
     "皮肤": "camouflages",
     "资源": "currency",
-    "道具": "currency",
+    "战斗增益": "currency",
 }
 
 def load_item_type_mappings():
@@ -305,10 +305,10 @@ def generate_item_image_path(item_id, item_type, activity_id=None):
     if not item_id or not item_type:
         return None
 
-    # 根据类型确定图片目录列表（资源/道具需要检查多个目录）
+    # 根据类型确定图片目录列表（资源/战斗增益需要检查多个目录）
     image_folders = []
 
-    if item_type in ["资源", "道具"]:
+    if item_type in ["资源", "战斗增益"]:
         # 资源类物品需要检查currency和common-items目录
         image_folders = [
             IMAGE_DIR / "currency",
@@ -881,7 +881,7 @@ HTML_TEMPLATE = """
             transform: scale(1.1);
         }
 
-        /* 资源/道具选择对话框网格 */
+        /* 资源/战斗增益选择对话框网格 */
         .common-items-modal-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -1012,6 +1012,27 @@ HTML_TEMPLATE = """
 
         .activity-pools h3:first-child {
             margin-top: 0;
+        }
+
+        /* 概率总和显示 */
+        .probability-sum {
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .probability-sum.valid {
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid #4ade80;
+        }
+
+        .probability-sum.invalid {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
         }
 
         .drop-zone {
@@ -1416,8 +1437,8 @@ HTML_TEMPLATE = """
         <!-- 筹码类单池 -->
         <div class="activity-pools" id="activity-pools-chip" style="display:none;">
             <div class="pool-header">
-                <h3>奖池物品 <span class="item-count">(<span id="pool-chip-count">0</span>)</span></h3>
-                <button class="add-item-btn" data-pool="chip" title="添加资源/道具">+</button>
+                <h3>奖池物品 <span class="item-count">(<span id="pool-chip-count">0</span>)</span> <span class="probability-sum" id="pool-chip-probability">0%</span></h3>
+                <button class="add-item-btn" data-pool="chip" title="添加资源/战斗增益">+</button>
             </div>
             <div class="drop-zone" data-pool="chip">
                 <p class="drop-hint">从左侧拖拽物品到这里</p>
@@ -1428,8 +1449,8 @@ HTML_TEMPLATE = """
         <!-- 旗舰宝箱类双池 -->
         <div class="activity-pools" id="activity-pools-flagship" style="display:none;">
             <div class="pool-header">
-                <h3>旗舰宝箱 <span class="item-count">(<span id="pool-flagship-count">0</span>)</span></h3>
-                <button class="add-item-btn" data-pool="flagship" title="添加资源/道具">+</button>
+                <h3>旗舰宝箱 <span class="item-count">(<span id="pool-flagship-count">0</span>)</span> <span class="probability-sum" id="pool-flagship-probability">0%</span></h3>
+                <button class="add-item-btn" data-pool="flagship" title="添加资源/战斗增益">+</button>
             </div>
             <div class="drop-zone" data-pool="flagship">
                 <p class="drop-hint">从左侧拖拽物品到这里</p>
@@ -1437,8 +1458,8 @@ HTML_TEMPLATE = """
             </div>
 
             <div class="pool-header">
-                <h3>宝箱券 <span class="item-count">(<span id="pool-voucher-count">0</span>)</span></h3>
-                <button class="add-item-btn" data-pool="voucher" title="添加资源/道具">+</button>
+                <h3>宝箱券 <span class="item-count">(<span id="pool-voucher-count">0</span>)</span> <span class="probability-sum" id="pool-voucher-probability">0%</span></h3>
+                <button class="add-item-btn" data-pool="voucher" title="添加资源/战斗增益">+</button>
             </div>
             <div class="drop-zone" data-pool="voucher">
                 <p class="drop-hint">从左侧拖拽物品到这里</p>
@@ -1449,8 +1470,8 @@ HTML_TEMPLATE = """
         <!-- 机密货物类双池 -->
         <div class="activity-pools" id="activity-pools-cargo" style="display:none;">
             <div class="pool-header">
-                <h3>货运无人机 <span class="item-count">(<span id="pool-gameplay-count">0</span>)</span></h3>
-                <button class="add-item-btn" data-pool="gameplay" title="添加资源/道具">+</button>
+                <h3>货运无人机 <span class="item-count">(<span id="pool-gameplay-count">0</span>)</span> <span class="probability-sum" id="pool-gameplay-probability">0%</span></h3>
+                <button class="add-item-btn" data-pool="gameplay" title="添加资源/战斗增益">+</button>
             </div>
             <div class="drop-zone" data-pool="gameplay">
                 <p class="drop-hint">从左侧拖拽物品到这里</p>
@@ -1458,8 +1479,8 @@ HTML_TEMPLATE = """
             </div>
 
             <div class="pool-header">
-                <h3>机密货物 <span class="item-count">(<span id="pool-rm-count">0</span>)</span></h3>
-                <button class="add-item-btn" data-pool="rm" title="添加资源/道具">+</button>
+                <h3>机密货物 <span class="item-count">(<span id="pool-rm-count">0</span>)</span> <span class="probability-sum" id="pool-rm-probability">0%</span></h3>
+                <button class="add-item-btn" data-pool="rm" title="添加资源/战斗增益">+</button>
             </div>
             <div class="drop-zone" data-pool="rm">
                 <p class="drop-hint">从左侧拖拽物品到这里</p>
@@ -1479,11 +1500,11 @@ HTML_TEMPLATE = """
         <div class="context-menu-item danger" id="menu-exclude">🚫 排除此项</div>
     </div>
 
-    <!-- 选择资源/道具对话框 -->
+    <!-- 选择资源/战斗增益对话框 -->
     <div class="modal-overlay" id="commonItemModal">
         <div class="modal-dialog">
             <div class="modal-header">
-                <h3>选择资源/道具</h3>
+                <h3>选择资源/战斗增益</h3>
                 <button class="modal-close" id="commonItemModalClose">✕</button>
             </div>
             <div class="modal-body">
@@ -1492,7 +1513,7 @@ HTML_TEMPLATE = """
                     <select id="common-item-filter">
                         <option value="">全部</option>
                         <option value="资源">资源</option>
-                        <option value="道具">道具</option>
+                        <option value="战斗增益">战斗增益</option>
                     </select>
                 </div>
                 <div class="modal-form-group">
@@ -2102,6 +2123,25 @@ HTML_TEMPLATE = """
             });
         }
 
+        // 更新概率总和显示（辅助函数）
+        function updateProbabilitySum(poolName) {
+            const probabilitySpan = document.getElementById(`pool-${poolName}-probability`);
+            const items = poolsData[poolName] || [];
+
+            // 计算概率总和
+            const totalProbability = items.reduce((sum, item) => sum + (parseFloat(item.probability) || 0), 0);
+            const probabilityText = totalProbability.toFixed(2) + '%';
+            probabilitySpan.textContent = probabilityText;
+
+            // 根据概率总和设置颜色
+            probabilitySpan.classList.remove('valid', 'invalid');
+            if (Math.abs(totalProbability - 100) < 0.01) {
+                probabilitySpan.classList.add('valid');
+            } else {
+                probabilitySpan.classList.add('invalid');
+            }
+        }
+
         // 更新单个池子的物品显示
         function updatePoolItems(poolName) {
             const listContainer = document.getElementById(`pool-${poolName}-list`);
@@ -2109,6 +2149,9 @@ HTML_TEMPLATE = """
             const items = poolsData[poolName] || [];
 
             countSpan.textContent = items.length;
+
+            // 更新概率总和
+            updateProbabilitySum(poolName);
 
             if (items.length === 0) {
                 listContainer.innerHTML = '';
@@ -2146,6 +2189,8 @@ HTML_TEMPLATE = """
                 // 概率
                 const probabilityGroup = createFieldGroup('概率', item.probability || 0, 'number', false, (value) => {
                     item.probability = parseFloat(value) || 0;
+                    // 更新概率总和显示
+                    updateProbabilitySum(poolName);
                 });
                 // 限制
                 const limitGroup = createFieldGroup('限制', item.limit || 0, 'number', false, (value) => {
@@ -2228,9 +2273,9 @@ HTML_TEMPLATE = """
             return group;
         }
 
-        // ==================== 资源/道具选择对话框 ====================
-        let commonItems = [];  // 所有资源/道具
-        let filteredCommonItems = [];  // 过滤后的资源/道具
+        // ==================== 资源/战斗增益选择对话框 ====================
+        let commonItems = [];  // 所有资源/战斗增益
+        let filteredCommonItems = [];  // 过滤后的资源/战斗增益
         let targetPool = '';  // 目标池子
 
         const commonItemModal = document.getElementById('commonItemModal');
@@ -2238,7 +2283,7 @@ HTML_TEMPLATE = """
         const commonItemFilter = document.getElementById('common-item-filter');
         const commonItemSearch = document.getElementById('common-item-search');
 
-        // 加载资源/道具列表
+        // 加载资源/战斗增益列表
         async function loadCommonItems() {
             if (commonItems.length > 0) return; // 只加载一次
 
@@ -2246,11 +2291,11 @@ HTML_TEMPLATE = """
                 const response = await fetch('/api/common-items');
                 commonItems = await response.json();
             } catch (error) {
-                console.error('加载资源/道具失败:', error);
+                console.error('加载资源/战斗增益失败:', error);
             }
         }
 
-        // 渲染资源/道具网格
+        // 渲染资源/战斗增益网格
         function renderCommonItemsModal() {
             const grid = document.getElementById('common-items-modal-grid');
             grid.innerHTML = '';
@@ -2294,7 +2339,7 @@ HTML_TEMPLATE = """
             });
         }
 
-        // 添加资源/道具到池子
+        // 添加资源/战斗增益到池子
         function addCommonItemToPool(item, poolName) {
             if (!poolsData[poolName]) return;
 
@@ -2320,7 +2365,7 @@ HTML_TEMPLATE = """
             updatePoolItems(poolName);
         }
 
-        // 过滤资源/道具
+        // 过滤资源/战斗增益
         function filterCommonItems() {
             const filterType = commonItemFilter.value;
             const searchQuery = commonItemSearch.value.toLowerCase();
@@ -2978,7 +3023,7 @@ def save_activity(activity_type, activity_id):
 
 @app.route('/api/common-items', methods=['GET'])
 def get_common_items():
-    """获取所有资源和道具列表"""
+    """获取所有资源和战斗增益列表"""
     try:
         mappings = load_item_type_mappings()
         common_items = mappings.get('common_items', [])
